@@ -41,7 +41,6 @@ class Limit {
                 size++;
                 volume += order->volume;
                 price = order->price;
-                mtx.unlock();
                 return;
             }
             order->next = head;
@@ -153,8 +152,8 @@ class Orderbook {
 Orderbook * book = new Orderbook();
 // delete book;
 
-void concat_order(int i, int v, float p, bool bid){
-    book->add_order(i, v, p, bid);
+void concat_order(int i){
+    return;
 }
 
 int main(){
@@ -163,18 +162,19 @@ int main(){
 
     // cout << "ADD ASK" << endl;
     // book->add_order(2, 1, 101, false);
+    
 
-    thread first (concat_order, 1, 1, 100, true);
-    thread second (concat_order, 2, 1, 100, true);
+    thread first (concat_order, 1);
+    thread second (concat_order, 2);
 
     first.join();
     second.join();
 
-    book->remove_order(2);
-    cout << "ORDER 2 REMOVED" << endl;
+    // book->remove_order(2);
+    // cout << "ORDER 2 REMOVED" << endl;
 
-    book->remove_order(1);
-    cout << "ORDER 1 REMOVED" << endl;
+    // book->remove_order(1);
+    // cout << "ORDER 1 REMOVED" << endl;
 
     return 0;
 }
