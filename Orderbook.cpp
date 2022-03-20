@@ -34,24 +34,18 @@ class Limit {
         int volume;
         float price;
         void append_order(Order * order){    
-            mtx.lock();
             if (size==0){
                 head = order;
                 tail = order;
-                size++;
-                volume += order->volume;
                 price = order->price;
-                mtx.unlock();
-                return;
+            } else {
+                order->next = head;
+                head->before = order;
+                head = order;
+                head->before = nullptr;
             }
-            order->next = head;
-            head->before = order;
-            head = order;
-            head->before = nullptr;
             size++;
             volume += order->volume;
-
-            mtx.unlock();
         }
 
         void cancel_order(Order * order){
@@ -63,13 +57,16 @@ class Limit {
             volume -= order->volume;
         }
 
-        bool pop_front(int volume_pop){
+        bool pop_front(int volume_pop, unordered_map<int, Order*> * id_to_order){
             volume -= volume_pop;
+            // cout << volume_pop << " " << volume << endl;
             while (volume_pop>0){
+                // cout << head->volume << endl;
                 int temp_volume = head->volume;
                 if (head->volume <= volume_pop){
                     cout << "EXECUTE ORDER " << head->id << endl;
                     Order * new_head = head->next;
+                    id_to_order->erase(head->id);
                     delete head;
                     head = new_head;
                 }
@@ -94,7 +91,9 @@ class Orderbook {
         unordered_map<int, Order*> id_to_order;
 
     public:
+        float mark = 100;
         int add_order(int i, int v, float p, bool bid){
+            mtx.lock();
             Order * order = new Order(i, v, p, bid);
             if (bid){
                 bids[p].append_order(order); 
@@ -105,6 +104,7 @@ class Orderbook {
                 limit_map_asks[p] = &asks[p];
             }
             id_to_order[i] = order;
+            mtx.unlock();
             execute();
             return i;
         }
@@ -120,41 +120,67 @@ class Orderbook {
         }
 
         void execute(){
+            mtx.lock();
             if (bids.size()==0 || asks.size()==0){
+                mtx.unlock();
                 return;
             }
             auto bids_iter = bids.begin();
             auto asks_iter = asks.begin();
-            // cout << bids_iter->second.price << endl;
-            // cout << asks_iter->second.price << endl;
             while (asks_iter->second.price <= bids_iter->second.price){
-                //cout << "HI" << endl;
-                // cout << asks_iter->second.price << " "<< bids_iter->second.price << endl;
+                // cout << "STARTED" << endl;
                 int m = min(asks_iter->second.volume, bids_iter->second.volume);
-                // pop the front of the bids and asks linkedlists depending on volume available
-                if (asks_iter->second.pop_front(m)){
+
+                if (asks_iter->second.pop_front(m, &id_to_order)){
                     limit_map_asks.erase(asks_iter->second.price);
                     asks.erase(asks_iter);
                     asks_iter = asks.begin();
                 }
-                if (bids_iter->second.pop_front(m)){
+
+                if (bids_iter->second.pop_front(m, &id_to_order)){
                     limit_map_bids.erase(bids_iter->second.price);
                     bids.erase(bids_iter);
                     bids_iter = bids.begin();
                 }
+
                 if (bids.size()==0 || asks.size()==0){
+                    mtx.unlock();
                     return;
+                } else {
+                    mark = (asks_iter->second.price + bids_iter->second.price)/2;
+                    cout << "MARK PRICE: " << mark << endl;
                 }
             }
+            mtx.unlock();
         }
 };
 
 
 Orderbook * book = new Orderbook();
 // delete book;
+int current_i = 0;
 
-void concat_order(int i, int v, float p, bool bid){
-    book->add_order(i, v, p, bid);
+
+void exec(){
+    while (true){
+        book->execute();
+    }
+}
+
+void spam_bids(){ 
+    float p;
+    while (current_i<1000){
+        p = book->mark+((float)(rand()%100)-49.5)/10;
+        book->add_order(current_i++, 1, p, true);
+    }
+}
+
+void spam_asks(){
+    float p;
+    while (current_i<1000){
+        p = book->mark+((float)(rand()%100)-49.5)/10;
+        book->add_order(current_i++, 1, p, false);
+    }
 }
 
 int main(){
@@ -164,17 +190,11 @@ int main(){
     // cout << "ADD ASK" << endl;
     // book->add_order(2, 1, 101, false);
 
-    thread first (concat_order, 1, 1, 100, true);
-    thread second (concat_order, 2, 1, 100, true);
+    thread first (spam_bids);
+    thread second (spam_asks);
 
     first.join();
     second.join();
-
-    book->remove_order(2);
-    cout << "ORDER 2 REMOVED" << endl;
-
-    book->remove_order(1);
-    cout << "ORDER 1 REMOVED" << endl;
 
     return 0;
 }
