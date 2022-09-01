@@ -5,6 +5,7 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
+#include <vector>
 
 using namespace std;
 
@@ -92,6 +93,8 @@ class Orderbook {
 
     public:
         float mark = 100;
+        vector<float> marks;
+
         int add_order(int i, int v, float p, bool bid){
             mtx.lock();
             Order * order = new Order(i, v, p, bid);
@@ -112,6 +115,7 @@ class Orderbook {
         void remove_order(int id){
             Order * o = id_to_order[id];
             // TODO: remove from bids and asks maps, remove id from map if deleted elsewhere
+            // Check volume for 0 case
             if (o->bid){
                 limit_map_bids[o->price]->cancel_order(o);
             } else {
@@ -149,6 +153,7 @@ class Orderbook {
                 } else {
                     mark = (asks_iter->second.price + bids_iter->second.price)/2;
                     cout << "MARK PRICE: " << mark << endl;
+                    marks.push_back(mark);
                 }
             }
             mtx.unlock();
@@ -169,7 +174,7 @@ void exec(){
 
 void spam_bids(){ 
     float p;
-    while (current_i<1000){
+    while (current_i<100000){
         p = book->mark+((float)(rand()%100)-49.5)/10;
         book->add_order(current_i++, 1, p, true);
     }
@@ -177,7 +182,7 @@ void spam_bids(){
 
 void spam_asks(){
     float p;
-    while (current_i<1000){
+    while (current_i<100000){
         p = book->mark+((float)(rand()%100)-49.5)/10;
         book->add_order(current_i++, 1, p, false);
     }
@@ -195,6 +200,10 @@ int main(){
 
     first.join();
     second.join();
+
+    // for (int i = 0; i < (int)book->marks.size(); i++){
+    //     cout << book->marks[i] << ", ";
+    // }
 
     return 0;
 }

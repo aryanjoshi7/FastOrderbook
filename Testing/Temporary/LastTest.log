@@ -1,0 +1,22 @@
+Start testing: Apr 04 13:49 EDT
+----------------------------------------------------------
+1/1 Testing: boostedaf
+1/1 Test: boostedaf
+Command: "/usr/bin/python" "boosted.py"
+Directory: /home/araut/FastOrderbook/boostedaf
+"boostedaf" start time: Apr 04 13:49 EDT
+Output:
+----------------------------------------------------------
+Traceback (most recent call last):
+  File "boosted.py", line 1, in <module>
+    import orderbook
+ImportError: /lib/x86_64-linux-gnu/libboost_python38.so.1.71.0: undefined symbol: _Py_tracemalloc_config
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Failed.
+"boostedaf" end time: Apr 04 13:49 EDT
+"boostedaf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Apr 04 13:49 EDT

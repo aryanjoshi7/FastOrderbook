@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/araut/FastOrderbook/boostedaf/Orderbook_base.cpp
+unordered_map
+-
+map
+-
+string
+-
+list
+-
+iostream
+-
+thread
+-
+mutex
+-
+vector
+-
+boost/python.hpp
+-
+

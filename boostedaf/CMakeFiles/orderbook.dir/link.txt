@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -o orderbook.so CMakeFiles/orderbook.dir/Orderbook_base.cpp.o /usr/lib/x86_64-linux-gnu/libboost_python38.so.1.71.0 -lpython3.8 -lboost_python38

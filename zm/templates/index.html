@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Python Websockets ZeroMQ demo</title>
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script type="text/javascript" src="static/js/reconnecting_websocket.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.6/d3.min.js"></script>
+    <script type="text/javascript" src="static/js/application.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <div class="grid grid-cols-2 gap-4 p-8">
+      <div class="shadow-lg rounded-lg overflow-hidden">
+        <canvas class="p-4" height="200" id="myChart"></canvas>
+      </div>
+      <div class="shadow-lg rounded-lg overflow-hidden">
+        <!-- <div id="latest_data"></div> -->
+        <div id="container"></div>
+
+      </div>
+    </div>
+    <script>
+      var data = [];
+      function addData(chart, label, data) {
+          chart.data.labels.push(label);
+          chart.data.datasets.forEach((dataset) => {
+              dataset.data.push(data);
+          });
+          chart.update('none');
+      }
+
+      function removeData(chart) {
+          chart.data.labels.pop();
+          chart.data.datasets.forEach((dataset) => {
+              dataset.data.pop();
+          });
+          chart.update('none');
+      }
+      
+      const ctx = document.getElementById('myChart');
+
+      const myChart = new Chart(ctx, {
+        animation: false,
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Mark Price',
+                data: [],
+                borderWidth: 5,
+                pointRadius: 0,
+                borderColor: 'lightgreen',
+                pointRadius: 0,
+            }],
+            options: {
+              scales: {
+                x: {
+                  grid: {
+                    drawOnChartArea:false
+                  }
+                },
+                y: {
+                  grid: {
+                    drawOnChartArea:false
+                  }
+                }
+              }
+            }
+        }});
+
+
+
+
+    chart = Highcharts.chart('container', {
+    chart: {
+        type: 'area',
+        zoomType: 'xy',
+        animation: false,
+    },
+    title: {
+        text: 'Orderbook Market Depth'
+    },
+    xAxis: {
+        minPadding: 0,
+        maxPadding: 0,
+        plotLines: [{
+            color: '#888',
+            value: 0.1523,
+            width: 1,
+            label: {
+                text: 'Actual price',
+                rotation: 90
+            }
+        }],
+        title: {
+            text: 'Price'
+        }
+    },
+    yAxis: [{
+        lineWidth: 1,
+        gridLineWidth: 1,
+        title: null,
+        tickWidth: 1,
+        tickLength: 5,
+        tickPosition: 'inside',
+        labels: {
+            align: 'left',
+            x: 8
+        }
+    }, {
+        opposite: true,
+        linkedTo: 0,
+        lineWidth: 1,
+        gridLineWidth: 0,
+        title: null,
+        tickWidth: 1,
+        tickLength: 5,
+        tickPosition: 'inside',
+        labels: {
+            align: 'right',
+            x: -8
+        }
+    }],
+    legend: {
+        enabled: false
+    },
+    plotOptions: {
+        area: {
+            fillOpacity: 0.2,
+            lineWidth: 1,
+            step: 'center'
+        }
+    },
+    tooltip: {
+        headerFormat: '<span style="font-size=10px;">Price: {point.key}</span><br/>',
+        valueDecimals: 2
+    },
+    series: [{
+        name: 'Bids',
+        data: [
+            
+        ],
+        color: '#03a7a8'
+    }, {
+        name: 'Asks',
+        data: [
+            
+        ],
+        color: '#fc5857'
+    }]
+});
+
+
+
+      ws = new ReconnectingWebSocket("ws://localhost:25000/zeromq");
+      var n = 0;
+      ws.onmessage = function(message) {
+        payload = JSON.parse(message.data);
+        addData(myChart, n, payload.mark);
+        var bids = [];
+        var asks = [];
+        payload.asks.sort(function compareFn(a, b) {
+          if (a.price<b.price){
+            return -1;
+          }
+          return 1;
+        });
+
+        payload.bids.sort(function compareFn(a, b) {
+          if (a.price>b.price){
+            return -1;
+          }
+          return 1;
+        });
+
+        var running_total = 0;
+        for (var i = 0; i<payload.asks.length; i++){
+          asks.push([payload.asks[i].price, running_total+payload.asks[i].volume])
+          running_total = running_total + payload.asks[i].volume
+        }
+
+        running_total = 0;
+        for (var i = 0; i<payload.bids.length; i++){
+          bids.push([payload.bids[i].price, running_total + payload.bids[i].volume])
+          running_total = running_total + payload.bids[i].volume
+        }
+        chart.series[0].setData(asks)
+        chart.series[1].setData(bids)
+
+        n = n+1;
+        // $('#latest_data').html('<h2> Data: ' + message.data + '</h2>');
+      };
+    </script>
+  </div>
+    
+  </body>
+</html>
